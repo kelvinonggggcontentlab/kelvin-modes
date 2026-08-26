@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createHash, timingSafeEqual } from "crypto";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
-import { KELVIN_SYSTEM_PROMPT } from "@/lib/persona.server";
+import { KELVIN_SYSTEM_PROMPT, SECRETARY_SYSTEM_PROMPT } from "@/lib/persona.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
@@ -17,7 +17,15 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 type Turn = { role: "user" | "assistant"; content: string };
+type Mode = "kelvin" | "secretary";
 const history = new Map<number, Turn[]>();
+const modes = new Map<number, Mode>();
+
+// Secretary mode is the default: the bot answers as Kelvin's secretary until
+// switched to his direct voice with /kelvin.
+function getMode(chatId: number): Mode {
+  return modes.get(chatId) ?? "secretary";
+}
 
 function remember(chatId: number, turn: Turn) {
   const turns = history.get(chatId) ?? [];
@@ -82,7 +90,41 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         if (text === "/start" || text === "/help") {
           await sendMessage(
             chatId,
-            "𝗞𝗘𝗟𝗩𝗜𝗡 ᵇˡᵃᶜᵏᵗᵒʷᵉʳ here 咯\n\njust text me normally — logistics, questions, or business stuff\n/reset to clear the chat context",
+            [
+              "BLACKTOWER™ — KELVIN REPRESENTATIVE",
+              "",
+              `Current mode: ${getMode(chatId) === "secretary" ? "SECRETARY" : "KELVIN (direct voice)"}`,
+              "",
+              "/secretary — office secretary handles your message",
+              "/kelvin — replies in Kelvin's own voice",
+              "/mode — show current mode",
+              "/reset — clear the conversation context",
+            ].join("\n"),
+            LOVABLE_API_KEY,
+            TELEGRAM_API_KEY,
+          );
+          return Response.json({ ok: true });
+        }
+
+        if (text === "/secretary" || text === "/kelvin") {
+          const next: Mode = text === "/secretary" ? "secretary" : "kelvin";
+          modes.set(chatId, next);
+          history.delete(chatId);
+          await sendMessage(
+            chatId,
+            next === "secretary"
+              ? "Secretary mode on. I'll take your message and pass it to Kelvin for confirmation."
+              : "kelvin here 咯",
+            LOVABLE_API_KEY,
+            TELEGRAM_API_KEY,
+          );
+          return Response.json({ ok: true });
+        }
+
+        if (text === "/mode") {
+          await sendMessage(
+            chatId,
+            getMode(chatId) === "secretary" ? "Mode: SECRETARY" : "Mode: KELVIN (direct voice)",
             LOVABLE_API_KEY,
             TELEGRAM_API_KEY,
           );
@@ -99,7 +141,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
           const { text: reply } = await generateText({
             model: gateway("google/gemini-3.7-flash"),
-            system: KELVIN_SYSTEM_PROMPT,
+            system: getMode(chatId) === "secretary" ? SECRETARY_SYSTEM_PROMPT : KELVIN_SYSTEM_PROMPT,
             messages: [...(history.get(chatId) ?? []), { role: "user", content: text }],
           });
 
