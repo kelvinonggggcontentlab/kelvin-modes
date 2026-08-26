@@ -2,6 +2,12 @@
 @source "../src";
 @import "tw-animate-css";
 
+@theme {
+  --font-display: "Oswald", "Helvetica Neue", sans-serif;
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /*
