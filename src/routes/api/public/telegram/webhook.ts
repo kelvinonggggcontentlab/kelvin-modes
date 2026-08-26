@@ -33,7 +33,20 @@ function remember(chatId: number, turn: Turn) {
   history.set(chatId, turns.slice(-12));
 }
 
-async function sendMessage(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+type TgMessage = {
+  chat?: { id?: number };
+  from?: { id?: number; is_bot?: boolean };
+  text?: string;
+  business_connection_id?: string;
+};
+
+async function sendMessage(
+  chatId: number,
+  text: string,
+  lovableKey: string,
+  telegramKey: string,
+  businessConnectionId?: string,
+) {
   const res = await fetch(`${GATEWAY_URL}/sendMessage`, {
     method: "POST",
     headers: {
@@ -41,7 +54,13 @@ async function sendMessage(chatId: number, text: string, lovableKey: string, tel
       "X-Connection-Api-Key": telegramKey,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      // Chat Automation (Telegram Business) replies must be sent on the
+      // business connection, otherwise the bot cannot write into that chat.
+      ...(businessConnectionId ? { business_connection_id: businessConnectionId } : {}),
+    }),
   });
 
   if (!res.ok) {
@@ -75,21 +94,36 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         const update = (await request.json()) as {
           update_id?: number;
-          message?: { chat?: { id?: number }; text?: string };
-          edited_message?: { chat?: { id?: number }; text?: string };
+          message?: TgMessage;
+          edited_message?: TgMessage;
+          business_message?: TgMessage;
+          edited_business_message?: TgMessage;
         };
 
-        const message = update.message ?? update.edited_message;
+        const message =
+          update.business_message ??
+          update.edited_business_message ??
+          update.message ??
+          update.edited_message;
         const chatId = message?.chat?.id;
         const text = message?.text?.trim();
+        const businessConnectionId = message?.business_connection_id;
 
-        if (typeof chatId !== "number" || !text) {
+        if (typeof chatId !== "number" || !text || message?.from?.is_bot) {
           return Response.json({ ok: true, ignored: true });
         }
 
+        // In business chats Telegram also delivers messages Kelvin himself sends
+        // (from.id = his account, chat.id = the customer). Never reply to those.
+        if (businessConnectionId && message?.from?.id !== chatId) {
+          return Response.json({ ok: true, ignored: true });
+        }
+
+        const reply = (out: string) =>
+          sendMessage(chatId, out, LOVABLE_API_KEY, TELEGRAM_API_KEY, businessConnectionId);
+
         if (text === "/start" || text === "/help") {
-          await sendMessage(
-            chatId,
+          await reply(
             [
               "BLACKTOWER™ — KELVIN REPRESENTATIVE",
               "",
@@ -100,8 +134,6 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               "/mode — show current mode",
               "/reset — clear the conversation context",
             ].join("\n"),
-            LOVABLE_API_KEY,
-            TELEGRAM_API_KEY,
           );
           return Response.json({ ok: true });
         }
@@ -110,53 +142,40 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           const next: Mode = text === "/secretary" ? "secretary" : "kelvin";
           modes.set(chatId, next);
           history.delete(chatId);
-          await sendMessage(
-            chatId,
+          await reply(
             next === "secretary"
               ? "Secretary mode on. I'll take your message and pass it to Kelvin for confirmation."
               : "kelvin here 咯",
-            LOVABLE_API_KEY,
-            TELEGRAM_API_KEY,
           );
           return Response.json({ ok: true });
         }
 
         if (text === "/mode") {
-          await sendMessage(
-            chatId,
-            getMode(chatId) === "secretary" ? "Mode: SECRETARY" : "Mode: KELVIN (direct voice)",
-            LOVABLE_API_KEY,
-            TELEGRAM_API_KEY,
-          );
+          await reply(getMode(chatId) === "secretary" ? "Mode: SECRETARY" : "Mode: KELVIN (direct voice)");
           return Response.json({ ok: true });
         }
 
         if (text === "/reset") {
           history.delete(chatId);
-          await sendMessage(chatId, "cleared 咯", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await reply("cleared 咯");
           return Response.json({ ok: true });
         }
 
         try {
           const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
-          const { text: reply } = await generateText({
+          const { text: generated } = await generateText({
             model: gateway("google/gemini-3.7-flash"),
             system: getMode(chatId) === "secretary" ? SECRETARY_SYSTEM_PROMPT : KELVIN_SYSTEM_PROMPT,
             messages: [...(history.get(chatId) ?? []), { role: "user", content: text }],
           });
 
-          const out = reply.trim() || "ok";
+          const out = generated.trim() || "ok";
           remember(chatId, { role: "user", content: text });
           remember(chatId, { role: "assistant", content: out });
-          await sendMessage(chatId, out, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await reply(out);
         } catch (err) {
           console.error("AI reply failed:", err);
-          await sendMessage(
-            chatId,
-            "system got problem now, text me again later 咯",
-            LOVABLE_API_KEY,
-            TELEGRAM_API_KEY,
-          );
+          await reply("system got problem now, text me again later 咯");
         }
 
         return Response.json({ ok: true });
