@@ -24,6 +24,12 @@ export const Route = createFileRoute("/")({
 
 const modes = [
   {
+    tag: "MODE 00 · DEFAULT",
+    name: "Secretary",
+    body: "Speaks as the BLACKTOWER office secretary — screens the request, takes down the details, and passes it to Kelvin for confirmation. Commits to nothing on his behalf.",
+    sample: ["Noted, I'll pass it to Kelvin", "May I have your company?", "/secretary"],
+  },
+  {
     tag: "MODE 01",
     name: "Casual / Logistics",
     body: "Ultra-short bursts. Timing, food, scheduling, confirmations.",
@@ -88,9 +94,12 @@ function Index() {
         <div className="mt-14 rounded-lg border border-border bg-secondary px-6 py-7">
           <h2 className="font-display text-lg tracking-tight">Live on Telegram</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Send <span className="font-mono text-foreground">/start</span> to the bot to begin, or{" "}
-            <span className="font-mono text-foreground">/reset</span> to clear the conversation
-            context.
+            Send <span className="font-mono text-foreground">/start</span> to begin. The bot opens
+            in secretary mode; switch with{" "}
+            <span className="font-mono text-foreground">/secretary</span> or{" "}
+            <span className="font-mono text-foreground">/kelvin</span>, check with{" "}
+            <span className="font-mono text-foreground">/mode</span>, and clear context with{" "}
+            <span className="font-mono text-foreground">/reset</span>.
           </p>
         </div>
 
