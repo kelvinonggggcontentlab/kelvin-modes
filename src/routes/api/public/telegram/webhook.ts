@@ -16,22 +16,8 @@ function safeEqual(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-type Turn = { role: "user" | "assistant"; content: string };
 type Mode = "kelvin" | "secretary";
-const history = new Map<number, Turn[]>();
-const modes = new Map<number, Mode>();
 
-// Secretary mode is the default: the bot answers as Kelvin's secretary until
-// switched to his direct voice with /kelvin.
-function getMode(chatId: number): Mode {
-  return modes.get(chatId) ?? "secretary";
-}
-
-function remember(chatId: number, turn: Turn) {
-  const turns = history.get(chatId) ?? [];
-  turns.push(turn);
-  history.set(chatId, turns.slice(-12));
-}
 
 type TgMessage = {
   chat?: { id?: number };
