@@ -3,6 +3,12 @@ import { createHash, timingSafeEqual } from "crypto";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { KELVIN_SYSTEM_PROMPT, SECRETARY_SYSTEM_PROMPT } from "@/lib/persona.server";
+import {
+  appendTurns,
+  clearHistory,
+  loadChatState,
+  setMode,
+} from "@/lib/telegram-state.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
