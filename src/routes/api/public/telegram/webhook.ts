@@ -3,6 +3,12 @@ import { createHash, timingSafeEqual } from "crypto";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { KELVIN_SYSTEM_PROMPT, SECRETARY_SYSTEM_PROMPT } from "@/lib/persona.server";
+import {
+  appendTurns,
+  clearHistory,
+  loadChatState,
+  setMode,
+} from "@/lib/telegram-state.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
@@ -16,22 +22,8 @@ function safeEqual(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-type Turn = { role: "user" | "assistant"; content: string };
 type Mode = "kelvin" | "secretary";
-const history = new Map<number, Turn[]>();
-const modes = new Map<number, Mode>();
 
-// Secretary mode is the default: the bot answers as Kelvin's secretary until
-// switched to his direct voice with /kelvin.
-function getMode(chatId: number): Mode {
-  return modes.get(chatId) ?? "secretary";
-}
-
-function remember(chatId: number, turn: Turn) {
-  const turns = history.get(chatId) ?? [];
-  turns.push(turn);
-  history.set(chatId, turns.slice(-12));
-}
 
 type TgMessage = {
   chat?: { id?: number };
@@ -122,12 +114,15 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         const reply = (out: string) =>
           sendMessage(chatId, out, LOVABLE_API_KEY, TELEGRAM_API_KEY, businessConnectionId);
 
+        // Mode and recent context live in the database, so they survive redeploys.
+        const state = await loadChatState(chatId);
+
         if (text === "/start" || text === "/help") {
           await reply(
             [
               "BLACKTOWER™ — KELVIN REPRESENTATIVE",
               "",
-              `Current mode: ${getMode(chatId) === "secretary" ? "SECRETARY" : "KELVIN (direct voice)"}`,
+              `Current mode: ${state.mode === "secretary" ? "SECRETARY" : "KELVIN (direct voice)"}`,
               "",
               "/secretary — office secretary handles your message",
               "/kelvin — replies in Kelvin's own voice",
@@ -140,8 +135,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         if (text === "/secretary" || text === "/kelvin") {
           const next: Mode = text === "/secretary" ? "secretary" : "kelvin";
-          modes.set(chatId, next);
-          history.delete(chatId);
+          await setMode(chatId, next, businessConnectionId);
           await reply(
             next === "secretary"
               ? "Secretary mode on. I'll take your message and pass it to Kelvin for confirmation."
@@ -151,12 +145,12 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         }
 
         if (text === "/mode") {
-          await reply(getMode(chatId) === "secretary" ? "Mode: SECRETARY" : "Mode: KELVIN (direct voice)");
+          await reply(state.mode === "secretary" ? "Mode: SECRETARY" : "Mode: KELVIN (direct voice)");
           return Response.json({ ok: true });
         }
 
         if (text === "/reset") {
-          history.delete(chatId);
+          await clearHistory(chatId);
           await reply("cleared 咯");
           return Response.json({ ok: true });
         }
@@ -165,13 +159,20 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
           const { text: generated } = await generateText({
             model: gateway("google/gemini-3.7-flash"),
-            system: getMode(chatId) === "secretary" ? SECRETARY_SYSTEM_PROMPT : KELVIN_SYSTEM_PROMPT,
-            messages: [...(history.get(chatId) ?? []), { role: "user", content: text }],
+            system: state.mode === "secretary" ? SECRETARY_SYSTEM_PROMPT : KELVIN_SYSTEM_PROMPT,
+            messages: [...state.history, { role: "user", content: text }],
           });
 
           const out = generated.trim() || "ok";
-          remember(chatId, { role: "user", content: text });
-          remember(chatId, { role: "assistant", content: out });
+          await appendTurns(
+            chatId,
+            state,
+            [
+              { role: "user", content: text },
+              { role: "assistant", content: out },
+            ],
+            businessConnectionId,
+          );
           await reply(out);
         } catch (err) {
           console.error("AI reply failed:", err);
