@@ -1,4 +1,5 @@
 import { auth, defineMcp } from "@lovable.dev/mcp-js";
+import type { AnyToolDefinition } from "@lovable.dev/mcp-js";
 import listChats from "./tools/list-chats";
 import getChat from "./tools/get-chat";
 import setChatMode from "./tools/set-chat-mode";
@@ -18,5 +19,7 @@ export default defineMcp({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listChats, getChat, setChatMode, draftReply],
+  // Cast: tool definitions omit the optional outputSchema, which the strict
+  // exactOptionalPropertyTypes setting otherwise rejects.
+  tools: [listChats, getChat, setChatMode, draftReply] as AnyToolDefinition[],
 });
