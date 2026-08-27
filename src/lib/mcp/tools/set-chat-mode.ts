@@ -11,6 +11,7 @@ export default defineTool({
     chat_id: z.number().describe("Telegram chat id, as returned by list_chats."),
     mode: z.enum(["secretary", "kelvin"]).describe("The reply voice to use for this chat."),
   },
+  outputSchema: { chat: z.record(z.string(), z.unknown()) },
   annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   handler: async ({ chat_id, mode }, ctx) => {
     if (!ctx.isAuthenticated()) {

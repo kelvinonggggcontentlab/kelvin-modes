@@ -10,6 +10,7 @@ export default defineTool({
   inputSchema: {
     chat_id: z.number().describe("Telegram chat id, as returned by list_chats."),
   },
+  outputSchema: { chat: z.record(z.string(), z.unknown()) },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ chat_id }, ctx) => {
     if (!ctx.isAuthenticated()) {

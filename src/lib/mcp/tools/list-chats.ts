@@ -10,6 +10,7 @@ export default defineTool({
   inputSchema: {
     limit: z.number().int().describe("How many chats to return, most recently active first."),
   },
+  outputSchema: { chats: z.array(z.record(z.string(), z.unknown())) },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
     if (!ctx.isAuthenticated()) {

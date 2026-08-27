@@ -15,6 +15,7 @@ export default defineTool({
       .enum(["secretary", "kelvin"])
       .describe("Which voice to draft in: 'secretary' or 'kelvin'."),
   },
+  outputSchema: { voice: z.string(), draft: z.string() },
   annotations: { readOnlyHint: true, openWorldHint: true },
   handler: async ({ message, voice }, ctx) => {
     if (!ctx.isAuthenticated()) {

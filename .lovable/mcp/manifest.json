@@ -40,7 +40,25 @@
             "limit"
           ]
         },
-        "outputSchema": null
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chats": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            }
+          },
+          "required": [
+            "chats"
+          ]
+        }
       },
       {
         "name": "get_chat",
@@ -64,7 +82,22 @@
             "chat_id"
           ]
         },
-        "outputSchema": null
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chat": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "chat"
+          ]
+        }
       },
       {
         "name": "set_chat_mode",
@@ -97,7 +130,22 @@
             "mode"
           ]
         },
-        "outputSchema": null
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chat": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "chat"
+          ]
+        }
       },
       {
         "name": "draft_reply",
@@ -129,7 +177,22 @@
             "voice"
           ]
         },
-        "outputSchema": null
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "voice": {
+              "type": "string"
+            },
+            "draft": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "voice",
+            "draft"
+          ]
+        }
       }
     ]
   }
