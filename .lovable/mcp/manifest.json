@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "sdk_version": "0.28.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://gshhobwxjzgyhxmwrrjn.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "kelvin-s-aide",
+      "version": "0.1.0",
+      "title": "Kelvin's Aide"
+    },
+    "tools": [
+      {
+        "name": "list_chats",
+        "title": "List Telegram chats",
+        "description": "List the Telegram chats the bot has handled, with each chat's current reply mode (secretary or kelvin) and how many stored conversation turns it has. Admin only.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "How many chats to return, most recently active first."
+            }
+          },
+          "required": [
+            "limit"
+          ]
+        },
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chats": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            }
+          },
+          "required": [
+            "chats"
+          ]
+        }
+      },
+      {
+        "name": "get_chat",
+        "title": "Get Telegram chat context",
+        "description": "Read one Telegram chat's current reply mode and its stored recent conversation turns, by chat id. Admin only.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chat_id": {
+              "type": "number",
+              "description": "Telegram chat id, as returned by list_chats."
+            }
+          },
+          "required": [
+            "chat_id"
+          ]
+        },
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chat": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "chat"
+          ]
+        }
+      },
+      {
+        "name": "set_chat_mode",
+        "title": "Set Telegram chat mode",
+        "description": "Switch a Telegram chat between 'secretary' (the office secretary takes the message) and 'kelvin' (replies in Kelvin's own voice). Clears that chat's stored context. Admin only.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chat_id": {
+              "type": "number",
+              "description": "Telegram chat id, as returned by list_chats."
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "secretary",
+                "kelvin"
+              ],
+              "description": "The reply voice to use for this chat."
+            }
+          },
+          "required": [
+            "chat_id",
+            "mode"
+          ]
+        },
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "chat": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "chat"
+          ]
+        }
+      },
+      {
+        "name": "draft_reply",
+        "title": "Draft a reply",
+        "description": "Draft a reply to an incoming message in the BLACKTOWER voice — either the office secretary voice or Kelvin's own Malaysian Chinese / Manglish voice. Returns text only; it does not send anything to Telegram.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "The incoming message to reply to."
+            },
+            "voice": {
+              "type": "string",
+              "enum": [
+                "secretary",
+                "kelvin"
+              ],
+              "description": "Which voice to draft in: 'secretary' or 'kelvin'."
+            }
+          },
+          "required": [
+            "message",
+            "voice"
+          ]
+        },
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "voice": {
+              "type": "string"
+            },
+            "draft": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "voice",
+            "draft"
+          ]
+        }
+      }
+    ]
+  }
+}
