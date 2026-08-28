@@ -68,8 +68,13 @@ function AuthPage() {
     }
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) {
+      setBusy(false);
+      return setError(signInError.message);
+    }
+    // One-time bootstrap: the first account to sign in becomes the admin.
+    await supabase.rpc("claim_admin");
     setBusy(false);
-    if (signInError) return setError(signInError.message);
     window.location.replace(next);
   }
 
@@ -77,7 +82,7 @@ function AuthPage() {
     setBusy(true);
     setError(null);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      redirect_uri: `${window.location.origin}${next}`,
     });
     if (result.error) {
       setBusy(false);
