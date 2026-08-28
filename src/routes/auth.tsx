@@ -43,8 +43,11 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) window.location.replace(next);
+    void supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      // One-time bootstrap: the first account to sign in becomes the admin.
+      await supabase.rpc("claim_admin");
+      window.location.replace(next);
     });
   }, [next]);
 
