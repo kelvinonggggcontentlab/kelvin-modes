@@ -103,6 +103,21 @@ function Index() {
           </p>
         </div>
 
+        <div className="mt-6 rounded-lg border border-border bg-card px-6 py-7">
+          <h2 className="font-display text-lg tracking-tight">Assistant access (MCP)</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            AI assistants such as Claude or ChatGPT can connect to this app's tools — inspect handled
+            chats, switch a chat's voice, or draft a reply. Callers sign in first, and chat data stays
+            restricted to the operator account.
+          </p>
+          <a
+            href="/auth"
+            className="mt-5 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Operator sign in
+          </a>
+        </div>
+
         <footer className="mt-16 border-t border-border pt-6 font-mono text-[11px] leading-relaxed tracking-wide text-muted-foreground">
           Voice representation only. No personal profiling, no health or private-history handling, no
           disciplinary or access decisions.
