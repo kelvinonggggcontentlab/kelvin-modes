@@ -102,7 +102,7 @@
       {
         "name": "set_chat_mode",
         "title": "Set Telegram chat mode",
-        "description": "Switch a Telegram chat between 'secretary' (the office secretary takes the message) and 'kelvin' (replies in Kelvin's own voice). Clears that chat's stored context. Admin only.",
+        "description": "Switch a Telegram chat between 'secretary' (the office secretary takes the message), 'kelvin' (replies in Kelvin's own voice) and 'nexus' (NEXUS, the chatty Malaysian trend-talking assistant). Clears that chat's stored context. Admin only.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": true,
@@ -120,7 +120,8 @@
               "type": "string",
               "enum": [
                 "secretary",
-                "kelvin"
+                "kelvin",
+                "nexus"
               ],
               "description": "The reply voice to use for this chat."
             }
@@ -150,7 +151,7 @@
       {
         "name": "draft_reply",
         "title": "Draft a reply",
-        "description": "Draft a reply to an incoming message in the BLACKTOWER voice — either the office secretary voice or Kelvin's own Malaysian Chinese / Manglish voice. Returns text only; it does not send anything to Telegram.",
+        "description": "Draft a reply to an incoming message in a BLACKTOWER voice — the office secretary, Kelvin's own Malaysian Chinese / Manglish voice, or NEXUS, the chatty trend-talking assistant. Returns text only; it does not send anything to Telegram.",
         "annotations": {
           "readOnlyHint": true,
           "openWorldHint": true
@@ -167,9 +168,10 @@
               "type": "string",
               "enum": [
                 "secretary",
-                "kelvin"
+                "kelvin",
+                "nexus"
               ],
-              "description": "Which voice to draft in: 'secretary' or 'kelvin'."
+              "description": "Which voice to draft in: 'secretary', 'kelvin' or 'nexus'."
             }
           },
           "required": [

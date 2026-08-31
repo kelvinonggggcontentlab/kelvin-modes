@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createHash, timingSafeEqual } from "crypto";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
-import { KELVIN_SYSTEM_PROMPT, SECRETARY_SYSTEM_PROMPT } from "@/lib/persona.server";
+import {
+  KELVIN_SYSTEM_PROMPT,
+  NEXUS_SYSTEM_PROMPT,
+  SECRETARY_SYSTEM_PROMPT,
+} from "@/lib/persona.server";
 import {
   appendTurns,
   clearHistory,
@@ -22,7 +26,19 @@ function safeEqual(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-type Mode = "kelvin" | "secretary";
+type Mode = "kelvin" | "secretary" | "nexus";
+
+const MODE_LABEL: Record<Mode, string> = {
+  secretary: "SECRETARY",
+  kelvin: "KELVIN (direct voice)",
+  nexus: "NEXUS (chatty)",
+};
+
+const SYSTEM_PROMPT: Record<Mode, string> = {
+  secretary: SECRETARY_SYSTEM_PROMPT,
+  kelvin: KELVIN_SYSTEM_PROMPT,
+  nexus: NEXUS_SYSTEM_PROMPT,
+};
 
 
 type TgMessage = {
@@ -122,10 +138,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             [
               "BLACKTOWER™ — KELVIN REPRESENTATIVE",
               "",
-              `Current mode: ${state.mode === "secretary" ? "SECRETARY" : "KELVIN (direct voice)"}`,
+              `Current mode: ${MODE_LABEL[state.mode]}`,
               "",
               "/secretary — office secretary handles your message",
               "/kelvin — replies in Kelvin's own voice",
+              "/nexus — NEXUS, the chatty Malaysian trend-talker",
               "/mode — show current mode",
               "/reset — clear the conversation context",
             ].join("\n"),
@@ -133,19 +150,22 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           return Response.json({ ok: true });
         }
 
-        if (text === "/secretary" || text === "/kelvin") {
-          const next: Mode = text === "/secretary" ? "secretary" : "kelvin";
+        if (text === "/secretary" || text === "/kelvin" || text === "/nexus") {
+          const next: Mode =
+            text === "/secretary" ? "secretary" : text === "/kelvin" ? "kelvin" : "nexus";
           await setMode(chatId, next, businessConnectionId);
           await reply(
             next === "secretary"
               ? "Secretary mode on. I'll take your message and pass it to Kelvin for confirmation."
-              : "kelvin here 咯",
+              : next === "kelvin"
+                ? "kelvin here 咯"
+                : "NEXUS here wei 👋 what's up, anything hot going on your side?",
           );
           return Response.json({ ok: true });
         }
 
         if (text === "/mode") {
-          await reply(state.mode === "secretary" ? "Mode: SECRETARY" : "Mode: KELVIN (direct voice)");
+          await reply(`Mode: ${MODE_LABEL[state.mode]}`);
           return Response.json({ ok: true });
         }
 
@@ -159,7 +179,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
           const { text: generated } = await generateText({
             model: gateway("google/gemini-3.7-flash"),
-            system: state.mode === "secretary" ? SECRETARY_SYSTEM_PROMPT : KELVIN_SYSTEM_PROMPT,
+            system: SYSTEM_PROMPT[state.mode],
             messages: [...state.history, { role: "user", content: text }],
           });
 
