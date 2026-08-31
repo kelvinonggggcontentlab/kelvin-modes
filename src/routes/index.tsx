@@ -30,6 +30,12 @@ const modes = [
     sample: ["Noted, I'll pass it to Kelvin", "May I have your company?", "/secretary"],
   },
   {
+    tag: "MODE 04 · NEXUS",
+    name: "Nexus",
+    body: "The house AI that actually likes to talk. Chatty, curious, opinionated, and tuned into what Malaysians are talking about — food, football, dramas, games, gadgets, JB–Singapore life. Keeps the conversation going instead of waiting to be asked.",
+    sample: ["/nexus", "eh what's trending now", "jom makan where?"],
+  },
+  {
     tag: "MODE 01",
     name: "Casual / Logistics",
     body: "Ultra-short bursts. Timing, food, scheduling, confirmations.",
