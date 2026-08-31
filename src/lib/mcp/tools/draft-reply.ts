@@ -2,18 +2,22 @@ import { defineTool, ToolError } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
-import { KELVIN_SYSTEM_PROMPT, SECRETARY_SYSTEM_PROMPT } from "@/lib/persona.server";
+import {
+  KELVIN_SYSTEM_PROMPT,
+  NEXUS_SYSTEM_PROMPT,
+  SECRETARY_SYSTEM_PROMPT,
+} from "@/lib/persona.server";
 
 export default defineTool({
   name: "draft_reply",
   title: "Draft a reply",
   description:
-    "Draft a reply to an incoming message in the BLACKTOWER voice — either the office secretary voice or Kelvin's own Malaysian Chinese / Manglish voice. Returns text only; it does not send anything to Telegram.",
+    "Draft a reply to an incoming message in a BLACKTOWER voice — the office secretary, Kelvin's own Malaysian Chinese / Manglish voice, or NEXUS, the chatty trend-talking assistant. Returns text only; it does not send anything to Telegram.",
   inputSchema: {
     message: z.string().describe("The incoming message to reply to."),
     voice: z
-      .enum(["secretary", "kelvin"])
-      .describe("Which voice to draft in: 'secretary' or 'kelvin'."),
+      .enum(["secretary", "kelvin", "nexus"])
+      .describe("Which voice to draft in: 'secretary', 'kelvin' or 'nexus'."),
   },
   outputSchema: { voice: z.string(), draft: z.string() },
   annotations: { readOnlyHint: true, openWorldHint: true },
@@ -28,7 +32,12 @@ export default defineTool({
     const gateway = createLovableAiGatewayProvider(apiKey);
     const { text } = await generateText({
       model: gateway("google/gemini-3.7-flash"),
-      system: voice === "kelvin" ? KELVIN_SYSTEM_PROMPT : SECRETARY_SYSTEM_PROMPT,
+      system:
+        voice === "kelvin"
+          ? KELVIN_SYSTEM_PROMPT
+          : voice === "nexus"
+            ? NEXUS_SYSTEM_PROMPT
+            : SECRETARY_SYSTEM_PROMPT,
       messages: [{ role: "user", content: message }],
     });
 

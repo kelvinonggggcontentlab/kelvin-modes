@@ -1,0 +1,2 @@
+ALTER TABLE public.telegram_chats DROP CONSTRAINT IF EXISTS telegram_chats_mode_check;
+ALTER TABLE public.telegram_chats ADD CONSTRAINT telegram_chats_mode_check CHECK (mode IN ('secretary','kelvin','nexus'));

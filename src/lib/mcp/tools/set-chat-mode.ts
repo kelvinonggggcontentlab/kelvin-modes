@@ -6,10 +6,12 @@ export default defineTool({
   name: "set_chat_mode",
   title: "Set Telegram chat mode",
   description:
-    "Switch a Telegram chat between 'secretary' (the office secretary takes the message) and 'kelvin' (replies in Kelvin's own voice). Clears that chat's stored context. Admin only.",
+    "Switch a Telegram chat between 'secretary' (the office secretary takes the message), 'kelvin' (replies in Kelvin's own voice) and 'nexus' (NEXUS, the chatty Malaysian trend-talking assistant). Clears that chat's stored context. Admin only.",
   inputSchema: {
     chat_id: z.number().describe("Telegram chat id, as returned by list_chats."),
-    mode: z.enum(["secretary", "kelvin"]).describe("The reply voice to use for this chat."),
+    mode: z
+      .enum(["secretary", "kelvin", "nexus"])
+      .describe("The reply voice to use for this chat."),
   },
   outputSchema: { chat: z.record(z.string(), z.unknown()) },
   annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },

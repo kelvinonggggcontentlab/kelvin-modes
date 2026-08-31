@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type Turn = { role: "user" | "assistant"; content: string };
-export type Mode = "kelvin" | "secretary";
+export type Mode = "kelvin" | "secretary" | "nexus";
 
 export type ChatState = {
   mode: Mode;
@@ -31,7 +31,7 @@ export async function loadChatState(chatId: number): Promise<ChatState> {
 
   const rawHistory = Array.isArray(data?.history) ? data.history : [];
   return {
-    mode: data?.mode === "kelvin" ? "kelvin" : "secretary",
+    mode: data?.mode === "kelvin" || data?.mode === "nexus" ? data.mode : "secretary",
     history: rawHistory.filter(isTurn).slice(-MAX_TURNS),
   };
 }
