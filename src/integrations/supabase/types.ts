@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          target: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          target?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          target?: string | null
+        }
+        Relationships: []
+      }
+      notices: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledgement_note: string | null
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          recipient_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledgement_note?: string | null
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          recipient_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledgement_note?: string | null
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_chats: {
         Row: {
           business_connection_id: string | null
