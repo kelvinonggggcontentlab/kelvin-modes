@@ -288,7 +288,7 @@ function AdminPanel() {
                         className="mt-4 space-y-2 border-t border-border pt-4"
                         onSubmit={(e) => {
                           e.preventDefault();
-                          ackMutation.mutate({ id: n.id, note: ackNote[n.id] });
+                          ackMutation.mutate({ id: n.id, note: ackNote[n.id] ?? "" });
                         }}
                       >
                         <textarea
