@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: AdminPanel;
+  component: AdminPanel,
 });
 
 function fmt(value: string | null | undefined) {
