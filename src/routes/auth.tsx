@@ -2,6 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { logAccess } from "@/lib/admin.functions";
+
+async function recordSignIn() {
+  try {
+    await logAccess({ data: { action: "auth.sign_in" } });
+  } catch {
+    // Logging must never block sign-in.
+  }
+}
 
 /** Only same-origin relative paths are allowed as a post-sign-in target. */
 function safeNext(value: unknown): string {
@@ -47,6 +56,7 @@ function AuthPage() {
       if (!data.session) return;
       // One-time bootstrap: the first account to sign in becomes the admin.
       await supabase.rpc("claim_admin");
+      await recordSignIn();
       window.location.replace(next);
     });
   }, [next]);
@@ -77,6 +87,7 @@ function AuthPage() {
     }
     // One-time bootstrap: the first account to sign in becomes the admin.
     await supabase.rpc("claim_admin");
+    await recordSignIn();
     setBusy(false);
     window.location.replace(next);
   }
