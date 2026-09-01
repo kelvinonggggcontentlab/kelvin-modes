@@ -26,7 +26,7 @@ async function writeLog(entry: {
     actor_email: entry.actor_email,
     action: entry.action,
     target: entry.target ?? null,
-    details: entry.details ?? {},
+    details: JSON.parse(JSON.stringify(entry.details ?? {})),
   });
   if (error) console.error("access_logs insert failed:", error.message);
 }
