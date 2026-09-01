@@ -116,17 +116,35 @@ function Index() {
             chats, switch a chat's voice, or draft a reply. Callers sign in first, and chat data stays
             restricted to the operator account.
           </p>
-          <a
-            href="/auth"
-            className="mt-5 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Operator sign in
-          </a>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <a
+              href="/auth"
+              className="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Operator sign in
+            </a>
+            <a
+              href="/admin"
+              className="inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary"
+            >
+              Operator panel
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-lg border border-border bg-card px-6 py-7">
+          <h2 className="font-display text-lg tracking-tight">Operator panel</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Signed-in operators manage who holds the admin role, review a log of admin actions taken
+            in this app, and issue written notices that the recipient reads and acknowledges in
+            writing. Notices are records, not automated penalties.
+          </p>
         </div>
 
         <footer className="mt-16 border-t border-border pt-6 font-mono text-[11px] leading-relaxed tracking-wide text-muted-foreground">
-          Voice representation only. No personal profiling, no health or private-history handling, no
-          disciplinary or access decisions.
+          Voice representation only. No personal profiling, and no health, substance or
+          private-history handling. Notices are written records between operators of this app,
+          acknowledged by the recipient — never automated sanctions against an individual.
         </footer>
       </div>
     </main>
