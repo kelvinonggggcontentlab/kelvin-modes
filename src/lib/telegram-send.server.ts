@@ -6,7 +6,7 @@ export async function sendTelegramMessage(params: {
   text: string;
   lovableKey: string;
   telegramKey: string;
-  businessConnectionId?: string | null;
+  businessConnectionId?: string | null | undefined;
 }) {
   const res = await fetch(`${GATEWAY_URL}/sendMessage`, {
     method: "POST",
