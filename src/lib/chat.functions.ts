@@ -8,6 +8,7 @@ export type ChatThread = {
   title: string;
   mode: ChatMode;
   updated_at: string;
+  telegram_chat_id: number | null;
 };
 
 export type StoredMessage = {
@@ -25,7 +26,7 @@ export const listThreads = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<ChatThread[]> => {
     const { data, error } = await context.supabase
       .from("chat_threads")
-      .select("id, title, mode, updated_at")
+      .select("id, title, mode, updated_at, telegram_chat_id")
       .eq("user_id", context.userId)
       .order("updated_at", { ascending: false })
       .limit(100);
@@ -36,6 +37,7 @@ export const listThreads = createServerFn({ method: "GET" })
       title: row.title as string,
       mode: fromDbMode(row.mode),
       updated_at: row.updated_at as string,
+      telegram_chat_id: row.telegram_chat_id === null ? null : Number(row.telegram_chat_id),
     }));
   });
 
@@ -49,7 +51,7 @@ export const createThread = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase
       .from("chat_threads")
       .insert({ user_id: context.userId, mode: toDbMode(data.mode), title: "New chat" })
-      .select("id, title, mode, updated_at")
+      .select("id, title, mode, updated_at, telegram_chat_id")
       .single();
 
     if (error) throw new Error(error.message);
@@ -58,6 +60,7 @@ export const createThread = createServerFn({ method: "POST" })
       title: row.title as string,
       mode: fromDbMode(row.mode),
       updated_at: row.updated_at as string,
+      telegram_chat_id: row.telegram_chat_id === null ? null : Number(row.telegram_chat_id),
     };
   });
 
@@ -72,7 +75,7 @@ export const getThread = createServerFn({ method: "GET" })
     }): Promise<{ thread: ChatThread; messages: StoredMessage[] } | null> => {
       const { data: row, error } = await context.supabase
         .from("chat_threads")
-        .select("id, title, mode, updated_at")
+        .select("id, title, mode, updated_at, telegram_chat_id")
         .eq("id", data.threadId)
         .eq("user_id", context.userId)
         .maybeSingle();
@@ -94,6 +97,7 @@ export const getThread = createServerFn({ method: "GET" })
           title: row.title as string,
           mode: fromDbMode(row.mode),
           updated_at: row.updated_at as string,
+          telegram_chat_id: row.telegram_chat_id === null ? null : Number(row.telegram_chat_id),
         },
         messages: (messages ?? []) as StoredMessage[],
       };

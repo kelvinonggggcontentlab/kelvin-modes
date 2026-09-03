@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, MessageSquare, Send, Link2, Link2Off } from "lucide-react";
 import { toast } from "sonner";
 import {
   Conversation,
@@ -29,6 +29,12 @@ import {
   listThreads,
   setThreadMode,
 } from "@/lib/chat.functions";
+import {
+  linkThreadToTelegram,
+  listTelegramChats,
+  relayToTelegram,
+} from "@/lib/telegram.functions";
+import { Input } from "@/components/ui/input";
 import mark from "@/assets/blacktower-mark.png";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
@@ -116,6 +122,28 @@ function ChatPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const telegramChatsQuery = useQuery({
+    queryKey: ["telegram-chats"],
+    queryFn: () => listTelegramChats(),
+  });
+
+  const link = useMutation({
+    mutationFn: (telegramChatId: number | null) =>
+      linkThreadToTelegram({ data: { threadId, telegramChatId } }),
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["chat-thread", threadId] }),
+        queryClient.invalidateQueries({ queryKey: ["chat-threads"] }),
+      ]);
+      toast.success(
+        result.telegramChatId === null
+          ? "Unlinked from Telegram."
+          : `Linked to Telegram chat ${result.telegramChatId}.`,
+      );
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const mode: ChatMode = threadQuery.data?.thread.mode ?? "tower";
 
   const initialMessages: UIMessage[] = useMemo(
@@ -172,6 +200,10 @@ function ChatPage() {
         initialMessages={initialMessages}
         onModeChange={(next) => changeMode.mutate(next)}
         onFirstMessage={() => queryClient.invalidateQueries({ queryKey: ["chat-threads"] })}
+        telegramChatId={threadQuery.data.thread.telegram_chat_id}
+        telegramChats={telegramChatsQuery.data ?? []}
+        onLink={(id) => link.mutate(id)}
+        linkPending={link.isPending}
       />
     </Shell>
   );
@@ -265,13 +297,23 @@ function ChatWindow({
   initialMessages,
   onModeChange,
   onFirstMessage,
+  telegramChatId,
+  telegramChats,
+  onLink,
+  linkPending,
 }: {
   threadId: string;
   mode: ChatMode;
   initialMessages: UIMessage[];
   onModeChange: (mode: ChatMode) => void;
   onFirstMessage: () => void;
+  telegramChatId: number | null;
+  telegramChats: { chat_id: number; turns: number; business_chat: boolean }[];
+  onLink: (telegramChatId: number | null) => void;
+  linkPending: boolean;
 }) {
+  const linked = telegramChatId !== null;
+  const queryClient = useQueryClient();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -296,16 +338,50 @@ function ChatWindow({
     onError: (error: Error) => toast.error(error.message || "The assistant could not answer."),
   });
 
-  const busy = status === "submitted" || status === "streaming";
+  // A linked thread is a live Telegram relay: messages go to the person on the
+  // other end, and their replies are mirrored in by the webhook, so poll.
+  const relayQuery = useQuery({
+    queryKey: ["chat-thread", threadId, "relay"],
+    queryFn: () => getThread({ data: { threadId } }),
+    enabled: linked,
+    refetchInterval: linked ? 5000 : false,
+  });
+
+  const relay = useMutation({
+    mutationFn: (text: string) => relayToTelegram({ data: { threadId, text } }),
+    onSuccess: async () => {
+      await relayQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["chat-threads"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const relayMessages: UIMessage[] = useMemo(
+    () =>
+      (relayQuery.data?.messages ?? []).map((row) => ({
+        id: row.id,
+        role: row.role,
+        parts: [{ type: "text" as const, text: row.content }],
+      })),
+    [relayQuery.data],
+  );
+
+  const shown = linked ? (relayQuery.data ? relayMessages : initialMessages) : messages;
+  const busy = linked ? relay.isPending : status === "submitted" || status === "streaming";
 
   useEffect(() => {
     if (!busy) textareaRef.current?.focus();
   }, [busy, threadId]);
 
-  const submit = (event: { preventDefault?: () => void }) => {
-    event.preventDefault?.();
+  const submit = (_message: unknown, event: { preventDefault: () => void }) => {
+    event.preventDefault();
     const text = input.trim();
     if (!text || busy) return;
+    if (linked) {
+      setInput("");
+      relay.mutate(text);
+      return;
+    }
     const first = messages.length === 0;
     setInput("");
     void sendMessage({ text });
@@ -335,11 +411,22 @@ function ChatWindow({
         </div>
       </header>
 
+      <TelegramBar
+        chats={telegramChats}
+        linkedChatId={telegramChatId}
+        onLink={onLink}
+        pending={linkPending}
+      />
+
       <Conversation className="flex-1">
         <ConversationContent>
-          {messages.length === 0 ? (
+          {shown.length === 0 ? (
             <ConversationEmptyState
-              description={`Speaking as ${MODE_META[mode].label}. ${MODE_META[mode].blurb}`}
+              description={
+              linked
+                ? `Relaying to Telegram chat ${telegramChatId}. What you type is sent to them as the bot.`
+                : `Speaking as ${MODE_META[mode].label}. ${MODE_META[mode].blurb}`
+            }
               icon={
                 <img
                   src={mark}
@@ -353,7 +440,7 @@ function ChatWindow({
               title="Start the conversation"
             />
           ) : (
-            messages.map((message) => (
+            shown.map((message) => (
               <Message from={message.role} key={message.id}>
                 <MessageContent>
                   {message.parts.map((part, index) =>
@@ -365,7 +452,7 @@ function ChatWindow({
               </Message>
             ))
           )}
-          {status === "submitted" ? (
+          {!linked && status === "submitted" ? (
             <Message from="assistant">
               <MessageContent>
                 <Shimmer>Thinking…</Shimmer>
@@ -380,15 +467,97 @@ function ChatWindow({
         <PromptInput onSubmit={submit}>
           <PromptInputTextarea
             onChange={(event) => setInput(event.currentTarget.value)}
-            placeholder={`Message ${MODE_META[mode].label}…`}
+            placeholder={
+              linked ? `Send to Telegram chat ${telegramChatId}…` : `Message ${MODE_META[mode].label}…`
+            }
             ref={textareaRef}
             value={input}
           />
           <PromptInputFooter className="justify-end">
-            <PromptInputSubmit disabled={!input.trim() || busy} status={status} />
+            <PromptInputSubmit
+              disabled={!input.trim() || busy}
+              status={linked ? (relay.isPending ? "submitted" : "ready") : status}
+            >
+              {linked ? <Send className="h-4 w-4" /> : undefined}
+            </PromptInputSubmit>
           </PromptInputFooter>
         </PromptInput>
       </div>
     </>
+  );
+}
+
+function TelegramBar({
+  chats,
+  linkedChatId,
+  onLink,
+  pending,
+}: {
+  chats: { chat_id: number; turns: number; business_chat: boolean }[];
+  linkedChatId: number | null;
+  onLink: (telegramChatId: number | null) => void;
+  pending: boolean;
+}) {
+  const [manual, setManual] = useState("");
+
+  if (linkedChatId !== null) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-accent/40 px-4 py-2 text-xs">
+        <Link2 className="h-3.5 w-3.5" />
+        <span className="font-medium">Live relay</span>
+        <span className="text-muted-foreground">
+          Telegram chat {linkedChatId} · your messages are delivered as the bot, and the bot&apos;s
+          auto-replies are paused for this chat.
+        </span>
+        <Button
+          className="ml-auto gap-1"
+          disabled={pending}
+          onClick={() => onLink(null)}
+          size="sm"
+          variant="outline"
+        >
+          <Link2Off className="h-3.5 w-3.5" /> Unlink
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2 text-xs">
+      <span className="text-muted-foreground">Link to Telegram:</span>
+      {chats.length > 0 ? (
+        <select
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+          defaultValue=""
+          disabled={pending}
+          onChange={(event) => {
+            const value = event.currentTarget.value;
+            if (value) onLink(Number(value));
+          }}
+        >
+          <option value="">Known chats…</option>
+          {chats.map((chat) => (
+            <option key={chat.chat_id} value={chat.chat_id}>
+              {chat.chat_id} · {chat.turns} turns{chat.business_chat ? " · business" : ""}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      <Input
+        className="h-8 w-40 text-xs"
+        inputMode="numeric"
+        onChange={(event) => setManual(event.currentTarget.value)}
+        placeholder="Or paste chat ID"
+        value={manual}
+      />
+      <Button
+        disabled={pending || !/^-?\d+$/.test(manual.trim())}
+        onClick={() => onLink(Number(manual.trim()))}
+        size="sm"
+        variant="secondary"
+      >
+        Link
+      </Button>
+    </div>
   );
 }
