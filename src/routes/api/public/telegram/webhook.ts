@@ -10,11 +10,12 @@ import {
 import {
   appendTurns,
   clearHistory,
+  findLinkedThread,
   loadChatState,
+  mirrorIncoming,
   setMode,
 } from "@/lib/telegram-state.server";
-
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+import { sendTelegramMessage } from "@/lib/telegram-send.server";
 
 function deriveTelegramWebhookSecret(telegramApiKey: string): string {
   return createHash("sha256").update(`telegram-webhook:${telegramApiKey}`).digest("base64url");
@@ -55,31 +56,10 @@ async function sendMessage(
   telegramKey: string,
   businessConnectionId?: string,
 ) {
-  const res = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      // Chat Automation (Telegram Business) replies must be sent on the
-      // business connection, otherwise the bot cannot write into that chat.
-      ...(businessConnectionId ? { business_connection_id: businessConnectionId } : {}),
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    console.error(`Telegram sendMessage failed [${res.status}]: ${body}`);
-    return;
-  }
-
-  const data = (await res.json()) as { ok?: boolean; error_code?: number; description?: string };
-  if (data.ok === false) {
-    console.error(`Telegram sendMessage error: ${data.error_code} ${data.description}`);
+  try {
+    await sendTelegramMessage({ chatId, text, lovableKey, telegramKey, businessConnectionId });
+  } catch (err) {
+    console.error("sendMessage failed:", err);
   }
 }
 
@@ -173,6 +153,14 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           await clearHistory(chatId);
           await reply("cleared 咯");
           return Response.json({ ok: true });
+        }
+
+        // When an operator has taken the chat over in the in-app console, the
+        // message is mirrored into that thread and the AI stays quiet.
+        const linked = await findLinkedThread(chatId);
+        if (linked) {
+          await mirrorIncoming(linked, text);
+          return Response.json({ ok: true, mirrored: true });
         }
 
         try {

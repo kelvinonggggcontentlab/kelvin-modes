@@ -68,3 +68,33 @@ export async function appendTurns(
     ...(businessConnectionId ? { business_connection_id: businessConnectionId } : {}),
   });
 }
+
+export type LinkedThread = { id: string; user_id: string };
+
+/** The in-app chat thread an operator has linked to this Telegram chat, if any. */
+export async function findLinkedThread(chatId: number): Promise<LinkedThread | null> {
+  const { data, error } = await supabaseAdmin
+    .from("chat_threads")
+    .select("id, user_id")
+    .eq("telegram_chat_id", chatId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("findLinkedThread failed:", error.message);
+    return null;
+  }
+  return data ? { id: data.id as string, user_id: data.user_id as string } : null;
+}
+
+/** Mirrors an incoming Telegram message into the linked in-app thread. */
+export async function mirrorIncoming(thread: LinkedThread, content: string) {
+  const { error } = await supabaseAdmin
+    .from("chat_messages")
+    .insert({ thread_id: thread.id, user_id: thread.user_id, role: "user", content });
+  if (error) console.error("mirrorIncoming insert failed:", error.message);
+
+  await supabaseAdmin
+    .from("chat_threads")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", thread.id);
+}
