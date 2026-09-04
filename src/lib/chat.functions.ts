@@ -111,6 +111,13 @@ export const setThreadMode = createServerFn({ method: "POST" })
     z.object({ threadId: z.string().uuid(), mode: modeSchema }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    const { data: current } = await context.supabase
+      .from("chat_threads")
+      .select("mode")
+      .eq("id", data.threadId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+
     const { error } = await context.supabase
       .from("chat_threads")
       .update({ mode: toDbMode(data.mode) })
@@ -118,6 +125,16 @@ export const setThreadMode = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
 
     if (error) throw new Error(error.message);
+
+    const { error: logError } = await context.supabase.from("mode_events").insert({
+      user_id: context.userId,
+      thread_id: data.threadId,
+      from_mode: current ? toDbMode(fromDbMode(current.mode)) : null,
+      to_mode: toDbMode(data.mode),
+      source: "app",
+    });
+    if (logError) console.error("mode_events insert failed:", logError.message);
+
     return { ok: true, mode: data.mode };
   });
 

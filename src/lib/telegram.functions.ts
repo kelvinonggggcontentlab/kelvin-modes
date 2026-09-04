@@ -89,13 +89,35 @@ export const relayToTelegram = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const { sendTelegramMessage } = await import("@/lib/telegram-send.server");
-    await sendTelegramMessage({
-      chatId,
-      text: data.text,
-      lovableKey: LOVABLE_API_KEY,
-      telegramKey: TELEGRAM_API_KEY,
-      businessConnectionId: tgChat?.business_connection_id ?? null,
-    });
+
+    const logDelivery = async (status: "sent" | "failed", errorMessage: string | null) => {
+      const { error: logError } = await context.supabase.from("telegram_deliveries").insert({
+        user_id: context.userId,
+        thread_id: data.threadId,
+        chat_id: chatId,
+        direction: "outbound",
+        status,
+        error: errorMessage,
+        preview: data.text.slice(0, 160),
+      });
+      if (logError) console.error("delivery log insert failed:", logError.message);
+    };
+
+    try {
+      await sendTelegramMessage({
+        chatId,
+        text: data.text,
+        lovableKey: LOVABLE_API_KEY,
+        telegramKey: TELEGRAM_API_KEY,
+        businessConnectionId: tgChat?.business_connection_id ?? null,
+      });
+    } catch (sendError) {
+      const message = sendError instanceof Error ? sendError.message : "Unknown Telegram error";
+      await logDelivery("failed", message);
+      throw new Error(message);
+    }
+
+    await logDelivery("sent", null);
 
     const { error: insertError } = await context.supabase.from("chat_messages").insert({
       thread_id: data.threadId,

@@ -109,6 +109,47 @@ export type Database = {
         }
         Relationships: []
       }
+      mode_events: {
+        Row: {
+          chat_id: number | null
+          created_at: string
+          from_mode: string | null
+          id: string
+          source: string
+          thread_id: string | null
+          to_mode: string
+          user_id: string | null
+        }
+        Insert: {
+          chat_id?: number | null
+          created_at?: string
+          from_mode?: string | null
+          id?: string
+          source?: string
+          thread_id?: string | null
+          to_mode: string
+          user_id?: string | null
+        }
+        Update: {
+          chat_id?: number | null
+          created_at?: string
+          from_mode?: string | null
+          id?: string
+          source?: string
+          thread_id?: string | null
+          to_mode?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mode_events_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notices: {
         Row: {
           acknowledged_at: string | null
@@ -171,6 +212,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      telegram_deliveries: {
+        Row: {
+          chat_id: number
+          created_at: string
+          direction: string
+          error: string | null
+          id: string
+          preview: string
+          status: string
+          thread_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          direction?: string
+          error?: string | null
+          id?: string
+          preview?: string
+          status: string
+          thread_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          direction?: string
+          error?: string | null
+          id?: string
+          preview?: string
+          status?: string
+          thread_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_deliveries_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
