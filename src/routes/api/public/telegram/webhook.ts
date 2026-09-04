@@ -159,7 +159,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         // message is mirrored into that thread and the AI stays quiet.
         const linked = await findLinkedThread(chatId);
         if (linked) {
-          await mirrorIncoming(linked, text);
+          await mirrorIncoming(linked, chatId, text);
           return Response.json({ ok: true, mirrored: true });
         }
 

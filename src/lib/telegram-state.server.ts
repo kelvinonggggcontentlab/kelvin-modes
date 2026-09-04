@@ -44,6 +44,15 @@ async function upsert(chatId: number, patch: Record<string, unknown>) {
 }
 
 export async function setMode(chatId: number, mode: Mode, businessConnectionId?: string) {
+  const previous = await loadChatState(chatId);
+  const { error: logError } = await supabaseAdmin.from("mode_events").insert({
+    chat_id: chatId,
+    from_mode: previous.mode,
+    to_mode: mode,
+    source: "telegram",
+  });
+  if (logError) console.error("mode_events insert failed:", logError.message);
+
   await upsert(chatId, {
     mode,
     history: [],
@@ -87,11 +96,21 @@ export async function findLinkedThread(chatId: number): Promise<LinkedThread | n
 }
 
 /** Mirrors an incoming Telegram message into the linked in-app thread. */
-export async function mirrorIncoming(thread: LinkedThread, content: string) {
+export async function mirrorIncoming(thread: LinkedThread, chatId: number, content: string) {
   const { error } = await supabaseAdmin
     .from("chat_messages")
     .insert({ thread_id: thread.id, user_id: thread.user_id, role: "user", content });
   if (error) console.error("mirrorIncoming insert failed:", error.message);
+
+  const { error: logError } = await supabaseAdmin.from("telegram_deliveries").insert({
+    user_id: thread.user_id,
+    thread_id: thread.id,
+    chat_id: chatId,
+    direction: "inbound",
+    status: "sent",
+    preview: content.slice(0, 160),
+  });
+  if (logError) console.error("delivery log insert failed:", logError.message);
 
   await supabaseAdmin
     .from("chat_threads")
