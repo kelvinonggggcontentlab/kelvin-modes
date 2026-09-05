@@ -92,9 +92,13 @@ function DashboardPage() {
           <Button asChild size="sm" variant="secondary">
             <Link to="/chat">Chat console</Link>
           </Button>
+          <Button asChild size="sm" variant="secondary">
+            <Link to="/requests">Requests</Link>
+          </Button>
           <Button asChild size="sm" variant="ghost">
             <Link to="/admin">Operator panel</Link>
           </Button>
+
         </div>
       </header>
 
