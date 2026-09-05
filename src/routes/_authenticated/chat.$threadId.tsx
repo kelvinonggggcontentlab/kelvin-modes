@@ -280,7 +280,10 @@ function Shell({
         </nav>
 
         <div className="border-t border-border p-3 text-xs">
-          <Link className="text-muted-foreground hover:text-foreground" to="/admin">
+          <Link className="block text-muted-foreground hover:text-foreground" to="/dashboard">
+            Operations dashboard →
+          </Link>
+          <Link className="block text-muted-foreground hover:text-foreground" to="/admin">
             Operator panel →
           </Link>
         </div>
