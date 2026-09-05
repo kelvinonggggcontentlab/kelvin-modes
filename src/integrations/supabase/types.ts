@@ -278,6 +278,54 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_requests: {
+        Row: {
+          chat_id: number
+          company: string | null
+          contact: string | null
+          created_at: string
+          id: string
+          name: string
+          operator_note: string | null
+          preferred_time: string | null
+          purpose: string
+          status: string
+          telegram_user_id: number | null
+          telegram_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          chat_id: number
+          company?: string | null
+          contact?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          operator_note?: string | null
+          preferred_time?: string | null
+          purpose: string
+          status?: string
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chat_id?: number
+          company?: string | null
+          contact?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          operator_note?: string | null
+          preferred_time?: string | null
+          purpose?: string
+          status?: string
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
